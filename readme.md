@@ -20,17 +20,9 @@
 
 **请在您的目标服务器上复制并运行以下指令：**
 
-bash
-curl -L -o key.sh https://raw.githubusercontent.com/JasonHe/LinuxKeyLogin/main/key.sh && chmod +x key.sh && echo -e "\n\033[1;32m脚本 'key.sh' 已下载成功。\033[0m" && echo -e "\033[1;33m下一步：请在即将打开的编辑器中，将您的 SSH 公钥粘贴到 PUBKEY 变量中。\033[0m" && read -p "准备好后，请按 Enter 键继续..." && nano key.sh && echo -e "\n\033[1;32m编辑完成！现在请运行 'sudo ./key.sh' 来执行脚本。\033[0m"
-
-**发生了什么？**
-1.  `curl`: 从 GitHub 下载最新的 `key.sh` 脚本。
-2.  `chmod`: 授予脚本执行权限。
-3.  `echo` & `read`: 显示清晰的提示信息，并等待您按回车。
-4.  `nano key.sh`: 自动打开 `nano` 编辑器，让您可以方便地编辑文件、粘贴公钥。
-5.  编辑保存后，它会提示您运行最终的执行命令 `sudo ./key.sh`。
-
-> **提示**: 此命令默认使用 `nano` 编辑器。如果您的系统没有安装 `nano`，可以先通过 `sudo apt update && sudo apt install nano` (Debian/Ubuntu) 或 `sudo yum install nano` (CentOS/RHEL) 来安装，或者将命令中的 `nano` 替换为您熟悉的编辑器（如 `vim`）。
+'
+wget -O - https://raw.githubusercontent.com/JasonHe/Linux_Key_Login/refs/heads/main/key.sh | bash
+'
 
 
 ## ⚠️ 重要：配置公钥
