@@ -20,7 +20,9 @@
 
 **请在您的目标服务器上复制并运行以下指令：**
 
-`wget -O - https://raw.githubusercontent.com/JasonHe/Linux_Key_Login/refs/heads/main/key.sh | bash`
+```shell
+wget -O - https://raw.githubusercontent.com/JasonHe/Linux_Key_Login/refs/heads/main/key.sh | bash
+```
 
 
 ## ⚠️ 重要：配置公钥
