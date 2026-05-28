@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# --- SSH Root-Only Hardening & User Cleanup Script ---
+#
+# 功能:
+# 1. 强制将公钥注入到 ROOT 账户。
+# 2. 开启 Root 远程登录权限（仅限密钥）。
+# 3. 禁用密码登录，删除所有其他普通用户。
+# 4. 重启 SSH 服务。
+
+# --- 配置区 ---
+# 将您的公钥粘贴到这里
+readonly PUBKEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK9fK5CA4fltx+6Sv+JAa3WdjrXLHL3Xhf26bQcNIsm/"
+
+# --- 脚本主体 ---
+
+# 必须以 root 权限运行
+if [ "$EUID" -ne 0 ]; then
+    echo "ERROR: 请使用 sudo 或 root 账户运行此脚本。"
+    exit 1
+fi
+
+set -e
+
+echo "--- 开始执行 Root 权限接管与系统清理 ---"
+
+# --- 步骤 1: 将公钥注入 Root 账户 ---
+TARGET_ROOT_HOME="/root"
+AUTH_KEYS_FILE="$TARGET_ROOT_HOME/.ssh/authorized_keys"
+
+echo "INFO: 准备将公钥添加到 Root 账户..."
+
+mkdir -p "$TARGET_ROOT_HOME/.ssh"
+chmod 700 "$TARGET_ROOT_HOME/.ssh"
+touch "$AUTH_KEYS_FILE"
+chmod 600 "$AUTH_KEYS_FILE"
+
+if grep -q -F "$PUBKEY" "$AUTH_KEYS_FILE"; then
+    echo "INFO: Root 的公钥已存在，跳过添加。"
+else
+    echo "$PUBKEY" >> "$AUTH_KEYS_FILE"
+    echo "SUCCESS: 公钥已成功添加到 Root 账户。"
+fi
+
+# --- 步骤 2: 修改 SSHD 配置文件 (允许 Root 且强制密钥) ---
+SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
+
+echo "INFO: 正在优化 $SSHD_CONFIG_FILE..."
+
+# 允许 Root 登录 (使用 yes 或 prohibit-password)
+# 因为下面禁用了密码，所以设置 yes 也是安全的，只能密钥登录
+sed -i -E 's/^[#\s]*PermitRootLogin\s+.*/PermitRootLogin yes/' "$SSHD_CONFIG_FILE"
+
+# 确保公钥认证开启
+sed -i -E 's/^[#\s]*PubkeyAuthentication\s+.*/PubkeyAuthentication yes/' "$SSHD_CONFIG_FILE"
+
+# 禁用密码认证
+sed -i -E 's/^[#\s]*PasswordAuthentication\s+.*/PasswordAuthentication no/' "$SSHD_CONFIG_FILE"
+
+# 禁用质询响应认证
+sed -i -E 's/^[#\s]*ChallengeResponseAuthentication\s+.*/ChallengeResponseAuthentication no/' "$SSHD_CONFIG_FILE"
+
+echo "SUCCESS: SSH 权限配置完成 (允许 Root 密钥登录)。"
+
+# --- 步骤 3: 重启 SSH 服务 ---
+echo "INFO: 正在重启 SSH 服务..."
+systemctl restart ssh || service ssh restart
+
+# --- 步骤 4: 删除所有普通用户 (UID >= 1000) ---
+echo "INFO: 正在清理系统普通账户..."
+
+# 获取所有普通用户列表 (排除 nobody)
+HUMAN_USERS=$(awk -F: '$3 >= 1000 && $3 <= 60000 {print $1}' /etc/passwd | grep -v "nobody")
+
+for user in $HUMAN_USERS; do
+    echo "正在强制删除用户: $user"
+    # 强制杀死该用户的所有进程，否则无法 userdel
+    pkill -u "$user" || true
+    sleep 1
+    # 彻底删除用户及其家目录
+    userdel -rf "$user" || true
+done
+
+echo "SUCCESS: 所有普通账户已清理。"
+
+echo ""
+echo "✅ --- 所有操作已完成 ---"
+echo "🔴 注意：你的当前会话可能即将断开（如果当前是普通用户）。"
+echo "🔴 请使用以下命令重新连接："
+echo "   ssh root@<服务器IP>"
+echo ""
+
+exit 0
