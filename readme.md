@@ -21,7 +21,7 @@
 **请在您的目标服务器上复制并运行以下指令：**
 
 ```shell
-wget -O - https://raw.githubusercontent.com/JasonHe/Linux_Key_Login/refs/heads/main/key.sh | bash
+apt install wget -y && wget -O - https://raw.githubusercontent.com/JasonHe/Linux_Key_Login/refs/heads/main/key.sh | bash
 ```
 
 
